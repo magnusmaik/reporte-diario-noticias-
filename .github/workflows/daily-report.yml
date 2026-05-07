@@ -1,0 +1,36 @@
+name: Reporte Diario de Noticias
+
+on:
+  # 12:03 PM hora local (UTC-3) = 15:03 UTC
+  schedule:
+    - cron: "3 15 * * *"
+  # Permite disparar manualmente desde la UI de GitHub para testear
+  workflow_dispatch:
+
+# Concurrencia: si una corrida tarda y la siguiente arranca, cancela la nueva.
+# Evitamos enviar dos emails al usuario por solapamiento.
+concurrency:
+  group: daily-report
+  cancel-in-progress: false
+
+jobs:
+  send-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Generate and send report
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL || 'perplexity/sonar' }}
+          REPORT_RECIPIENT: ${{ vars.REPORT_RECIPIENT || 'miguel.carsub@gmail.com' }}
+        run: python scripts/send_daily_report.py

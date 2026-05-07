@@ -1,0 +1,21 @@
+# Secretos
+.env
+.env.local
+.secrets/
+*.key
+
+# macOS
+.DS_Store
+
+# Settings locales con credenciales
+settings.local.json
+
+# Logs y archivos temporales
+*.log
+/tmp/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
