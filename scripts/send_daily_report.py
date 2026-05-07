@@ -43,7 +43,13 @@ RESEND_PATH = "/emails"
 OPENROUTER_API_KEY = (os.environ.get("OPENROUTER_API_KEY") or "").strip()
 RESEND_API_KEY = (os.environ.get("RESEND_API_KEY") or "").strip()
 OPENROUTER_MODEL = (os.environ.get("OPENROUTER_MODEL") or "perplexity/sonar").strip()
-REPORT_RECIPIENT = (os.environ.get("REPORT_RECIPIENT") or "miguel.carsub@gmail.com").strip()
+# Sin dominio verificado en Resend, el destinatario debe ser el email de la cuenta Resend
+RESEND_ACCOUNT_EMAIL = (os.environ.get("RESEND_ACCOUNT_EMAIL") or "").strip()
+REPORT_RECIPIENT = (os.environ.get("REPORT_RECIPIENT") or "").strip()
+if not REPORT_RECIPIENT and RESEND_ACCOUNT_EMAIL:
+    REPORT_RECIPIENT = RESEND_ACCOUNT_EMAIL
+elif not REPORT_RECIPIENT:
+    REPORT_RECIPIENT = "miguel.carsub@gmail.com"
 REPORT_FROM = (os.environ.get("REPORT_FROM") or "Reporte Diario <onboarding@resend.dev>").strip()
 
 
@@ -138,6 +144,14 @@ def send_via_resend(html: str, subject: str) -> dict:
     log(f"Resend response: status={status} body={response_body[:300]}")
 
     if status != 200:
+        # Error conocido: sin dominio verificado en Resend
+        if "send testing emails to your own email" in response_body:
+            msg = json.loads(response_body).get("message", response_body)
+            log(f"ERROR de Resend: {msg}")
+            log("SOLUCIÓN: Ve a https://resend.com/domains y verifica un dominio,")
+            log("o cambia REPORT_RECIPIENT al email de tu cuenta Resend.")
+            if RESEND_ACCOUNT_EMAIL:
+                log(f"Tip: configura REPORT_RECIPIENT={RESEND_ACCOUNT_EMAIL} en GitHub Variables")
         raise RuntimeError(f"Resend HTTP {status}: {response_body[:500]}")
 
     return json.loads(response_body)
