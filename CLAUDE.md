@@ -1,6 +1,6 @@
 # Reporte Diario de Noticias
 
-Automatización que corre en **GitHub Actions** y envía cada día a las 12:00 PM (hora local UTC-3, equivale a 15:03 UTC) un email bilingüe con 5 noticias de Mundo + 5 de Tecnología + 5 de Ciencia, vía **Resend**, a `miguel.carsub@gmail.com`. La curación corre en **OpenRouter** con `perplexity/sonar` (LLM con búsqueda web nativa).
+Automatización que corre en **GitHub Actions** y envía cada día a las 12:03 PM (hora local UTC-3, equivale a 15:03 UTC) un email bilingüe con 5 noticias de Mundo + 5 de Tecnología + 5 de Ciencia, vía **Resend**, a `miguel.carsub@gmail.com`. La curación corre en **OpenRouter** con `perplexity/sonar` (LLM con búsqueda web nativa).
 
 ## Arquitectura
 

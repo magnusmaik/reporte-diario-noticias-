@@ -31,6 +31,8 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL || 'perplexity/sonar' }}
-          REPORT_RECIPIENT: ${{ vars.REPORT_RECIPIENT || 'miguel.carsub@gmail.com' }}
+          # Opcional: define estas variables en GitHub → Settings → Variables
+          OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
+          REPORT_RECIPIENT: ${{ vars.REPORT_RECIPIENT }}
+          REPORT_FROM: ${{ vars.REPORT_FROM }}
         run: python scripts/send_daily_report.py

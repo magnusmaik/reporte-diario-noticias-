@@ -22,6 +22,8 @@ Sale con código 0 si Resend devuelve un id; 1 en cualquier otro caso.
 
 from __future__ import annotations
 
+import email as email_module
+import http.client
 import json
 import os
 import re
@@ -29,21 +31,20 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PROMPT_FILE = REPO_ROOT / os.environ.get("PROMPT_FILE", "prompt.md")
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-RESEND_URL = "https://api.resend.com/emails"
+RESEND_HOST = "api.resend.com"
+RESEND_PATH = "/emails"
 
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
-RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
-OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "perplexity/sonar")
-REPORT_RECIPIENT = os.environ.get("REPORT_RECIPIENT", "miguel.carsub@gmail.com")
-REPORT_FROM = os.environ.get("REPORT_FROM", "Reporte Diario <onboarding@resend.dev>")
+OPENROUTER_API_KEY = (os.environ.get("OPENROUTER_API_KEY") or "").strip()
+RESEND_API_KEY = (os.environ.get("RESEND_API_KEY") or "").strip()
+OPENROUTER_MODEL = (os.environ.get("OPENROUTER_MODEL") or "perplexity/sonar").strip()
+REPORT_RECIPIENT = (os.environ.get("REPORT_RECIPIENT") or "miguel.carsub@gmail.com").strip()
+REPORT_FROM = (os.environ.get("REPORT_FROM") or "Reporte Diario <onboarding@resend.dev>").strip()
 
 
 def log(msg: str) -> None:
@@ -52,22 +53,16 @@ def log(msg: str) -> None:
     print(f"[{ts}Z] {msg}", file=sys.stderr, flush=True)
 
 
-def post_json(url: str, headers: dict, payload: dict, timeout: int = 300) -> dict:
-    req = Request(
-        url,
-        method="POST",
-        headers={**headers, "Content-Type": "application/json"},
-        data=json.dumps(payload).encode("utf-8"),
-    )
+def http_post(host: str, path: str, headers: dict, body: str, timeout: int = 300) -> tuple[int, str]:
+    """POST usando http.client con control total sobre headers."""
+    conn = http.client.HTTPSConnection(host, timeout=timeout)
     try:
-        with urlopen(req, timeout=timeout) as resp:
-            body = resp.read().decode("utf-8")
-            return json.loads(body)
-    except HTTPError as e:
-        body = e.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"HTTP {e.code} de {url}: {body}") from e
-    except URLError as e:
-        raise RuntimeError(f"Error de red contactando {url}: {e}") from e
+        conn.request("POST", path, body=body, headers=headers)
+        resp = conn.getresponse()
+        response_body = resp.read().decode("utf-8", errors="replace")
+        return resp.status, response_body
+    finally:
+        conn.close()
 
 
 def call_openrouter(prompt: str) -> str:
@@ -79,14 +74,21 @@ def call_openrouter(prompt: str) -> str:
     }
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "HTTP-Referer": "https://github.com/magnusmaik/reporte-diario-noticias-",
+        "HTTP-Referer": "https://github.com/magnusmaik/reporte-diario-noticias",
         "X-Title": "Reporte Diario de Noticias",
+        "Content-Type": "application/json",
     }
 
     last_err: Exception | None = None
     for attempt in (1, 2, 3):
         try:
-            resp = post_json(OPENROUTER_URL, headers, payload, timeout=300)
+            status, body = http_post(
+                "openrouter.ai", "/api/v1/chat/completions", headers,
+                json.dumps(payload), timeout=300
+            )
+            if status != 200:
+                raise RuntimeError(f"HTTP {status}: {body[:500]}")
+            resp = json.loads(body)
             content = resp["choices"][0]["message"]["content"]
             log(f"OpenRouter OK ({len(content)} chars)")
             return content
@@ -101,11 +103,9 @@ def call_openrouter(prompt: str) -> str:
 def extract_html(raw: str) -> str:
     """Extrae HTML del output del LLM, removiendo fences ``` o texto extra."""
     s = raw.strip()
-    # Caso 1: el modelo envolvió en ```html ... ```
     fence = re.search(r"```(?:html)?\s*\n(.*?)\n```", s, re.DOTALL | re.IGNORECASE)
     if fence:
         s = fence.group(1).strip()
-    # Caso 2: hay texto antes de <!DOCTYPE o <html>
     m = re.search(r"<!DOCTYPE html.*?</html>", s, re.DOTALL | re.IGNORECASE)
     if m:
         return m.group(0)
@@ -123,8 +123,24 @@ def send_via_resend(html: str, subject: str) -> dict:
         "subject": subject,
         "html": html,
     }
-    headers = {"Authorization": f"Bearer {RESEND_API_KEY}"}
-    return post_json(RESEND_URL, headers, payload, timeout=60)
+    body = json.dumps(payload)
+    headers = {
+        "Authorization": f"Bearer {RESEND_API_KEY}",
+        "Content-Type": "application/json",
+        "User-Agent": "ReporteDiario/1.0",
+    }
+
+    log(f"Resend request: host={RESEND_HOST} path={RESEND_PATH}")
+    log(f"Resend auth header presente: {bool(RESEND_API_KEY)}")
+    log(f"Resend payload size: {len(body)} bytes")
+
+    status, response_body = http_post(RESEND_HOST, RESEND_PATH, headers, body, timeout=60)
+    log(f"Resend response: status={status} body={response_body[:300]}")
+
+    if status != 200:
+        raise RuntimeError(f"Resend HTTP {status}: {response_body[:500]}")
+
+    return json.loads(response_body)
 
 
 def main() -> int:
@@ -138,6 +154,8 @@ def main() -> int:
         log(f"ERROR: prompt no encontrado en {PROMPT_FILE}")
         return 1
 
+    log(f"RESEND_API_KEY configurada (len={len(RESEND_API_KEY)})")
+    log(f"OPENROUTER_API_KEY configurada (len={len(OPENROUTER_API_KEY)})")
     prompt = PROMPT_FILE.read_text(encoding="utf-8")
     log(f"Prompt cargado de {PROMPT_FILE.name} ({len(prompt)} chars)")
 
