@@ -34,7 +34,7 @@ jobs:
           # Opcional: define estas variables en GitHub → Settings → Variables
           OPENROUTER_MODEL: ${{ vars.OPENROUTER_MODEL }}
           REPORT_RECIPIENT: ${{ vars.REPORT_RECIPIENT }}
+          # Con dominio verificado (zetaperformance.com), usar: Reporte Diario <noreply@zetaperformance.com>
           REPORT_FROM: ${{ vars.REPORT_FROM }}
-          # Sin dominio verificado en Resend, pon aquí tu email de cuenta Resend
           RESEND_ACCOUNT_EMAIL: ${{ vars.RESEND_ACCOUNT_EMAIL }}
         run: python scripts/send_daily_report.py

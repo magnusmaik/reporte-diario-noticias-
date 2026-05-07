@@ -46,11 +46,12 @@ OPENROUTER_MODEL = (os.environ.get("OPENROUTER_MODEL") or "perplexity/sonar").st
 # Sin dominio verificado en Resend, el destinatario debe ser el email de la cuenta Resend
 RESEND_ACCOUNT_EMAIL = (os.environ.get("RESEND_ACCOUNT_EMAIL") or "").strip()
 REPORT_RECIPIENT = (os.environ.get("REPORT_RECIPIENT") or "").strip()
-if not REPORT_RECIPIENT and RESEND_ACCOUNT_EMAIL:
-    REPORT_RECIPIENT = RESEND_ACCOUNT_EMAIL
-elif not REPORT_RECIPIENT:
-    REPORT_RECIPIENT = "miguel.carsub@gmail.com"
-REPORT_FROM = (os.environ.get("REPORT_FROM") or "Reporte Diario <onboarding@resend.dev>").strip()
+if not REPORT_RECIPIENT:
+    if RESEND_ACCOUNT_EMAIL:
+        REPORT_RECIPIENT = RESEND_ACCOUNT_EMAIL
+    else:
+        REPORT_RECIPIENT = "miguel.carsub@gmail.com"
+REPORT_FROM = (os.environ.get("REPORT_FROM") or "Reporte Diario <noreply@zetaperformance.com>").strip()
 
 
 def log(msg: str) -> None:

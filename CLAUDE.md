@@ -33,7 +33,7 @@ GitHub Actions cron (15:03 UTC daily)
 - **OpenRouter perplexity/sonar** en lugar de WebSearch+LLM separado porque hace search+síntesis en una sola llamada → simpler.
 - **Stdlib-only Python** sin `requirements.txt` para evitar `pip install` en el workflow → más rápido y menos puntos de falla.
 - **HTML inline-styled** porque clientes de email no soportan `<style>` externo bien, y queremos que se vea decente en Gmail.
-- **Resend** sobre Gmail SMTP/OAuth: una sola llamada HTTP, sin OAuth flow.
+- **Resend** sobre Gmail SMTP/OAuth: una sola llamada HTTP, sin OAuth flow. Dominio verificado: `zetaperformance.com`, `from` configurado como `Reporte Diario <noreply@zetaperformance.com>`.
 - **Prompt en archivo separado** (no embedded en script) para iterar sobre el editorial sin tocar Python.
 
 ## Verificación end-to-end
