@@ -7,17 +7,18 @@ Automatización que corre en **GitHub Actions** y envía cada día a las 12:03 P
 ```
 GitHub Actions cron (15:03 UTC daily)
   → scripts/send_daily_report.py
-    → lee prompt.md
+    → lee prompt.md (formato JSON)
     → POST OpenRouter chat/completions (perplexity/sonar)
-    → extract_html() limpia fences y texto extra
+    → extract_json() parsea respuesta JSON
+    → generar_html() construye HTML ejecutivo desde Python
     → POST Resend /emails
   → Resend → Inbox
 ```
 
-- **Prompt editorial**: `prompt.md`. Fuente de verdad de qué busca y cómo formatea el reporte. El script lo lee en runtime, no está embebido en código.
-- **Script**: `scripts/send_daily_report.py`. Stdlib only (urllib, json, re). Reintentos con backoff para OpenRouter. Sale con código no-cero si falla — eso marca el run como rojo en GitHub.
-- **Workflow**: `.github/workflows/daily-report.yml`. Cron + dispatch manual. Concurrencia con `cancel-in-progress: false` para que dos runs solapados no manden dos emails.
-- **Secrets** viven en GitHub Actions secrets, NO en el repo: `OPENROUTER_API_KEY`, `RESEND_API_KEY`.
+- **Prompt editorial**: `prompt.md`. Define búsqueda y formato JSON de salida (no HTML). El script lo lee en runtime.
+- **Script**: `scripts/send_daily_report.py`. Stdlib only (http.client, json, re, html). Flujo: JSON del LLM → parseo → generación dinámica de HTML con diseño ejecutivo. Reintentos con backoff para OpenRouter.
+- **Workflow**: `.github/workflows/daily-report.yml`. Cron + dispatch manual. Concurrencia con `cancel-in-progress: false`.
+- **Secrets**: `OPENROUTER_API_KEY`, `RESEND_API_KEY`. Variables opcionales: `OPENROUTER_MODEL`, `REPORT_RECIPIENT`, `REPORT_FROM`, `RESEND_ACCOUNT_EMAIL`.
 
 ## Convenciones para edición
 
@@ -31,9 +32,10 @@ GitHub Actions cron (15:03 UTC daily)
 
 - **GitHub Actions** sobre `/schedule` de Claude Code porque el usuario está en OpenRouter y `/schedule` requiere cuenta claude.ai.
 - **OpenRouter perplexity/sonar** en lugar de WebSearch+LLM separado porque hace search+síntesis en una sola llamada → simpler.
-- **Stdlib-only Python** sin `requirements.txt` para evitar `pip install` en el workflow → más rápido y menos puntos de falla.
-- **HTML inline-styled** porque clientes de email no soportan `<style>` externo bien, y queremos que se vea decente en Gmail.
-- **Resend** sobre Gmail SMTP/OAuth: una sola llamada HTTP, sin OAuth flow. Dominio verificado: `zetaperformance.com`, `from` configurado como `Reporte Diario <noreply@zetaperformance.com>`.
+- **Stdlib-only Python** (http.client, json, re, html) sin dependencias externas → no `pip install`, menos puntos de falla.
+- **JSON como interfaz LLM→Python**: el LLM devuelve JSON con metadatos (impacto_score, confiabilidad, por qué importa). Python construye el HTML dinámicamente.
+- **Executive Dashboard Design**: HTML generado por Python con badges de impacto (rojo/amarillo/verde), bloques de análisis ("¿Por qué importa?"), y diseño responsivo inline para Gmail móvil.
+- **Resend** sobre Gmail SMTP/OAuth: una sola llamada HTTP, sin OAuth flow. Dominio verificado: `zetaperformance.com`.
 - **Prompt en archivo separado** (no embedded en script) para iterar sobre el editorial sin tocar Python.
 
 ## Verificación end-to-end
@@ -46,5 +48,6 @@ GitHub Actions cron (15:03 UTC daily)
 ## Riesgos conocidos / TODOs
 
 - Si `perplexity/sonar` empieza a devolver noticias de baja calidad, considerar bumping a `sonar-pro` o cambiar a `gpt-4o-search-preview`.
-- Sin retención de historial: cada reporte es independiente. Si se quisiera dedup ("ya cubrimos esa noticia ayer"), habría que persistir últimos N titulares en el repo y pasarlos en el prompt.
-- Resend sin dominio verificado limita el `from` a `onboarding@resend.dev` y el `to` al email del titular de la cuenta. Para enviar a más destinatarios o tener un `from` propio, configurar dominio en Resend.
+- **Parseo JSON**: si el LLM devuelve JSON inválido o con llaves extraviadas, `extract_json()` usa regex de llaves como fallback. Si falla, el run se marca rojo.
+- Sin retención de historial: cada reporte es independiente. Si se quisiera dedup, persistir titulares en el repo.
+- Resend con dominio verificado (`zetaperformance.com`) permite envíos a cualquier destinatario.
