@@ -14,12 +14,30 @@ Busca las noticias más **relevantes, trascendentales e interesantes** publicada
 - **Ventana de búsqueda**: Prioritariamente últimas 24h. Si no encuentras noticias de calidad en 24h para una categoría, expande la búsqueda hasta 48h.
 - Prioriza noticias con **impacto sustancial** sobre las simplemente curiosas.
 - No inventes noticias. Si una categoría tiene pocas noticias de calidad, devuelve solo las que encuentres (no rellenes con basura).
-- Cada noticia debe incluir:
+
+## ESTÁNDARES DE REDACCIÓN EJECUTIVA
+
+**PROHIBIDO el lenguaje genérico.** No uses términos vagos como "una molécula", "un laboratorio", "reguladores europeos", "una empresa tecnológica". Debes incluir:
+
+- **Nombres propios exactos**: OpenAI, DeepMind, ITER, NIS2, FDA, NASA, Tesla, etc.
+- **Cifras precisas**: porcentajes reales (ej. "inflación del 3.4%", no "inflación alta"), montos exactos, fechas específicas.
+- **Ubicaciones exactas**: ciudades, países, regiones específicas (ej. "Lagos, Nigeria", no "África").
+- **Resumen directo al grano**: estilo Axios o informe de inteligencia. Sin introducciones como "En un desarrollo reciente..." o "Se ha anunciado que...". Ve directo al hecho.
+
+Cada noticia debe incluir:
   - **Titular original** en su idioma de publicación.
   - **Resumen en español** de 2-3 oraciones explicando qué pasó y por qué importa.
   - **Evaluación de impacto**: escala 1-10 (qué tanto impacta a nivel macro).
   - **Confiabilidad de la fuente**: "Alta" o "Media".
   - **Por qué importa**: 1 oración con el insight clave o la relevancia estratégica.
+
+## CALIBRACIÓN DE IMPACTO_SCORE
+
+Sé **riguroso** con la escala 1-10:
+
+- **8-10**: Eventos que alteran la economía global, causan disrupción industrial masiva o cambios geopolíticos históricos. Ejemplos: guerra declarada entre potencias, crash financiero global, descubrimiento científico que cambia un campo entero, ley que redefine una industria multibillonaria.
+- **5-7**: Eventos de importancia sectorial o regional significativa. Avances tecnológicos importantes, acuerdos comerciales bilaterales, hallazgos científicos relevantes pero no revolucionarios.
+- **1-4**: Avances incrementales, lanzamientos de producto rutinarios, noticias locales, investigaciones en etapa temprana.
 
 ## Formato de salida — JSON estricto
 

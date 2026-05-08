@@ -226,7 +226,8 @@ def generar_html(datos: dict) -> str:
         for idx, n in enumerate(noticias_cat):
             titular = html.escape(n.get("titular", "Sin título"))
             resumen = html.escape(n.get("resumen", ""))
-            url = html.escape(n.get("url", "#"))
+            raw_url = n.get("url", "#")
+            url = html.escape(raw_url, quote=True)
             fuente = html.escape(n.get("fuente", "Desconocido"))
             impacto = n.get("impacto_score", 0)
             try:
@@ -253,8 +254,8 @@ def generar_html(datos: dict) -> str:
 
             # Tarjeta de noticia
             parts.append('<div style="margin-bottom:4px;">')
-            # Titular
-            parts.append(f'<h3 style="margin:0 0 8px;font-size:16px;line-height:1.4;color:#1a1a1a;"><a href="{url}" style="color:#1a1a1a;text-decoration:none;">{titular}</a></h3>')
+            # Titular (enlace clickeable, azul, sin subrayado)
+            parts.append(f'<h3 style="margin:0 0 8px;font-size:16px;line-height:1.4;"><a href="{url}" style="color:#1a3d6a;text-decoration:none;font-weight:600;">{titular}</a></h3>')
             # Resumen
             parts.append(f'<p style="margin:0 0 10px;font-size:14px;line-height:1.6;color:#444;">{resumen}</p>')
             # Meta: fuente, impacto, confiabilidad
@@ -262,11 +263,22 @@ def generar_html(datos: dict) -> str:
             parts.append(f'<span style="font-size:12px;color:#777;">\U0001F4CE {fuente}</span>')
             parts.append(f'<span style="background:{badge_bg};color:{badge_color};padding:2px 10px;border-radius:12px;font-size:11px;font-weight:600;">Impacto: {impacto}/10</span>')
             parts.append(f'<span style="font-size:11px;color:#666;border:1px solid #ddd;padding:2px 10px;border-radius:12px;">{confiabilidad}</span>')
+            # Enlace a artículo completo
+            parts.append(f'<a href="{url}" style="font-size:11px;color:#1a3d6a;text-decoration:none;background:#e8f0fe;padding:3px 10px;border-radius:12px;display:inline-block;">\U0001F517 Leer artículo completo en {fuente}</a>')
             parts.append('</div>')
 
-            # Por qué importa
+            # Por qué importa - diseño destacado con borde izquierdo grueso según impacto
             if por_que:
-                parts.append(f'<div style="margin-top:10px;padding:10px 14px;background-color:#f8f9fa;border-left:3px solid {cfg["color"]};font-size:13px;color:#555;line-height:1.5;"><strong style="color:#333;font-weight:600;">¿Por qué importa?</strong> <span style="font-style:italic;">{por_que}</span></div>')
+                if impacto >= 8:
+                    pq_border = "#dc2626"
+                    pq_bg = "#fef2f2"
+                elif impacto >= 5:
+                    pq_border = "#d97706"
+                    pq_bg = "#fffbeb"
+                else:
+                    pq_border = "#059669"
+                    pq_bg = "#ecfdf5"
+                parts.append(f'<div style="margin-top:10px;padding:12px 16px;background-color:{pq_bg};border-left:4px solid {pq_border};font-size:13px;color:#444;line-height:1.6;border-radius:0 6px 6px 0;"><strong style="color:#333;font-weight:600;display:block;margin-bottom:4px;">\U0001F4A1 ¿Por qué importa?</strong><span style="font-style:italic;">{por_que}</span></div>')
 
             parts.append('</div>')
 
